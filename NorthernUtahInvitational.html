@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title> Northern Utah Invitational Live Scoring</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+        :root {
+            --primary-color: #15803d;
+            --primary-dark: #064e3b;
+            --card-cream: #fdfbf7;
+            --under-par-bg: #991b1b;
+            --over-par-bg: #111827;
+            --even-par-bg: #15803d;
+        }
+
+        body { 
+            -webkit-tap-highlight-color: transparent; 
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.5s ease;
+            overscroll-behavior-y: contain; /* Prevents default browser refresh to allow custom implementation */
+        }
+
+        header {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                        opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                        backdrop-filter 0.4s ease;
+            transform-origin: top;
+            will-change: transform, opacity;
+        }
+
+        .header-collapsed {
+            transform: translateY(-20px) scaleY(0.8);
+            opacity: 0 !important;
+            pointer-events: none;
+        }
+
+        /* Unified Glassmorphic Header & Nav */
+        .glass-header {
+            background-color: var(--primary-color);
+            background-image: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.3));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-pill {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 9999px;
+            position: relative;
+        }
+
+        .active-tab { 
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .row-animate {
+            animation: fadeInUp 0.4s ease forwards;
+            opacity: 0;
+        }
+
+        .centered-container { max-width: 600px; margin: 0 auto; }
+
+        /* Bento Box Grid Styling */
+        .lb-grid {
+            display: grid;
+            grid-template-columns: 40px 1fr 65px 45px;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .rank-cell { text-align: left; font-weight: 900; color: #6b7280; font-size: 0.85rem; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+        .name-cell { display: flex; align-items: center; font-weight: 800; text-transform: uppercase; overflow: hidden; min-width: 0; }
+        .name-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem; flex: 1; cursor: pointer; color: #1f2937; }
+        .name-text:hover { text-decoration: underline; }
+        
+        /* High Contrast Score Cell - UPDATED COLOR SCHEME */
+        .score-pill {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.1rem;
+            border-radius: 0.5rem;
+            padding: 4px 0;
+            width: 100%;
+            font-variant-numeric: tabular-nums;
+            min-width: 50px;
+            color: white; 
+        }
+        .score-under { background-color: var(--under-par-bg); } /* Red */
+        .score-over { background-color: var(--over-par-bg); }  /* Black */
+        .score-even { background-color: var(--even-par-bg); }  /* Green */
+
+        .holes-cell { text-align: right; font-weight: 800; color: #4b5563; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+
+        .giant-header {
+            font-size: 1.1rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            text-align: center;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px;
+            border-radius: 1rem;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .school-banner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-top: 12px;
+        }
+        
+        .school-logo-btn { 
+            width: 32px; 
+            height: 32px; 
+            object-fit: contain; 
+            background: white; 
+            padding: 3px; 
+            border-radius: 6px; 
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .inline-logo { width: 22px; height: 22px; min-width: 22px; object-fit: contain; display: inline-block; vertical-align: middle; margin-right: 8px; background: white; padding: 2px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+        .pulse-live {
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .rule-card {
+            background: white;
+            border-left: 4px solid var(--primary-color);
+            padding: 16px;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .clubhouse-card {
+            background-color: var(--card-cream);
+            border: 2px solid #d1c7b7;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border-radius: 1rem;
+            position: relative;
+            overflow: hidden;
+            min-height: 200px;
+        }
+
+        .score-table { border-collapse: collapse; width: 100%; font-size: 11px; font-variant-numeric: tabular-nums; }
+        .score-table th, .score-table td { border: 1px solid #d1c7b7; padding: 0; text-align: center; }
+
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            background-color: var(--card-cream);
+            z-index: 20;
+            border-right: 2px solid #d1c7b7 !important;
+            width: 160px;
+            min-width: 160px;
+            max-width: 160px;
+            text-align: left !important;
+            padding: 4px 8px !important;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .hole-header { background-color: #f1ede4; font-size: 10px; font-weight: 900; color: #7c7263; width: 45px; min-width: 45px; height: 40px; }
+        
+        .score-input {
+            width: 100%;
+            height: 40px;
+            background: transparent;
+            text-align: center;
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: #374151;
+            border: none;
+            outline: none;
+            font-variant-numeric: tabular-nums;
+        }
+        .starting-hole-highlight {
+            background-color: #fef3c7 !important; /* Light amber background */
+            box-shadow: inset 0 0 0 2px #f59e0b !important; /* Amber inner border */
+        }
+
+        .syncing { background-color: #fef3c7; color: #b45309 !important; }
+        .synced-success { background-color: transparent !important; color: #15803d !important; }
+        .total-col { background-color: #ebe6d9; font-weight: 900; width: 45px; min-width: 45px; color: #453f35; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 10px;
+        }
+
+        /* Bento Player Cards */
+        .all-scores-item {
+            background-color: white;
+            padding: 12px 16px;
+            border-radius: 1rem;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            display: grid;
+            grid-template-columns: 1fr 75px 50px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .roster-card {
+            background: white;
+            border-radius: 1rem;
+            margin-bottom: 16px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .roster-player-header {
+            background: #f9fafb;
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 900;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-score-table {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
+            font-variant-numeric: tabular-nums;
+        }
+        .modal-score-table th, .modal-score-table td {
+            border: 1px solid #e5e7eb;
+            text-align: center;
+            padding: 8px 2px;
+        }
+        .modal-score-table th {
+            background-color: #f3f4f6;
+            font-size: 10px;
+            font-weight: 900;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+        .modal-score-table td {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: #1f2937;
+        }
+        .modal-score-table .total-label {
+            background-color: #374151;
+            color: white;
+            font-size: 11px;
+        }
+        .modal-score-table .total-val {
+            background-color: #111827;
+            color: white;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Pull to Refresh Styles */
+        #ptr-indicator {
+            position: fixed;
+            top: -60px;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            pointer-events: none;
+            transition: transform 0.1s ease;
+        }
+        .ptr-icon {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color);
+        }
+        .ptr-spinning {
+            animation: ptr-rotate 0.8s linear infinite;
+        }
+        @keyframes ptr-rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-900 overflow-x-hidden">
+
+    <div id="ptr-indicator">
+        <div class="ptr-icon" id="ptr-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" id="ptr-arrow" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" class="hidden" id="ptr-spinner-svg" />
+            </svg>
+        </div>
+    </div>
+
+    <div id="loading-global" class="modal-overlay hidden">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-green-700 mx-auto mb-4"></div>
+            <p id="loading-text" class="font-black uppercase italic tracking-widest text-gray-800">Loading Scorecard...</p>
+        </div>
+    </div>
+
+    <div id="warning-modal" class="modal-overlay hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center animate-fadeInUp">
+            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-black uppercase italic text-gray-800 mb-2">Score Keeper Access</h3>
+            <p class="text-sm text-gray-600 font-medium mb-4 leading-relaxed text-left">
+                <span class="text-red-600 font-bold uppercase">Warning:</span> Do not edit scores unless you are the official score keeper for your group. 
+            </p>
+            <button onclick="closeWarning()" class="w-full bg-green-700 text-white font-black py-4 rounded-xl shadow-lg hover:bg-green-800 active:scale-95 transition-all uppercase tracking-widest">
+                I Understand
+            </button>
+        </div>
+    </div>
+
+    <div id="scorecard-modal" class="modal-overlay hidden" onclick="closeScorecardModal(event)">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full h-[90vh] flex flex-col overflow-hidden animate-fadeInUp" onclick="event.stopPropagation()">
+            <div class="bg-stone-800 text-white p-4 flex justify-between items-center shrink-0">
+                <div class="flex items-center space-x-3">
+                    <div id="modal-logo-container" class="bg-white p-1 rounded"></div>
+                    <div>
+                        <h3 id="modal-title" class="text-lg font-black uppercase italic leading-none">View</h3>
+                        <p id="modal-subtitle" class="text-[10px] font-bold uppercase tracking-widest opacity-70 mt-1">Northern Utah Invitational Hub</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('scorecard-modal').classList.add('hidden')" class="p-2 hover:bg-white/10 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div id="modal-content" class="p-4 overflow-y-auto flex-1 bg-gray-50">
+            </div>
+            <div class="p-4 bg-white border-t flex justify-center shrink-0">
+                <button onclick="document.getElementById('scorecard-modal').classList.add('hidden')" class="px-8 py-3 bg-stone-800 text-white font-black uppercase text-xs tracking-widest rounded-lg">Close View</button>
+            </div>
+        </div>
+    </div>
+
+    <header id="main-header" class="glass-header text-white shadow-xl sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 pt-3 pb-2">
+            <div class="relative flex flex-col items-center">
+                <div class="absolute left-0 top-0 flex items-center pt-2">
+                    <span class="pulse-live"></span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest opacity-80">Live</span>
+                </div>
+                <div class="absolute right-0 top-0">
+                    <button onclick="refreshData()" class="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex flex-col items-center text-center w-full">
+                    <div class="flex items-center justify-center space-x-2">
+                        <h1 class="text-xl sm:text-3xl font-black tracking-tighter uppercase italic">Northern Utah Invitational</h1>
+                    </div>
+                    <span class="text-[9px] sm:text-xs font-bold tracking-[0.3em] text-white/70 uppercase">Live Scoring Hub</span>
+                    <div id="school-logo-banner" class="school-banner"></div>
+                </div>
+            </div>
+        </div>
+        <nav class="max-w-5xl mx-auto px-2 pb-3">
+            <div class="flex items-center justify-start sm:justify-center text-white/80 text-[10px] sm:text-sm font-bold uppercase overflow-x-auto whitespace-nowrap gap-1 no-scrollbar">
+                <button onclick="setView('scores')" id="tab-scores" class="nav-pill px-4 py-2 transition-all active-tab">Individuals</button>
+                <button onclick="setView('teams')" id="tab-teams" class="nav-pill px-4 py-2 transition-all">Teams</button>
+                <button onclick="setView('input')" id="tab-input" class="nav-pill px-4 py-2 transition-all">Score Entry</button>
+                <button onclick="setView('local-rules')" id="tab-local-rules" class="nav-pill px-4 py-2 transition-all">Rules</button>
+                <button onclick="setView('rules')" id="tab-rules" class="nav-pill px-4 py-2 transition-all">Spectators</button>
+                <button onclick="setView('pace')" id="tab-pace" class="nav-pill px-4 py-2 transition-all">Pace</button>
+            </div>
+        </nav>
+    </header>
+
+    <main id="main-content" class="max-w-7xl mx-auto p-3 sm:p-4 pb-24">
+        <div id="view-scores" class="view">
+            <div class="centered-container">
+                <div class="mb-4 px-1">
+                    <input id="scores-search" type="text" onkeyup="filterPlayerScores(this.value)" placeholder="Search players or teams..." class="w-full p-4 rounded-2xl border border-gray-200 shadow-sm outline-none focus:ring-2 focus:ring-green-500 text-base mb-3">
+                    <div id="team-filter-buttons" class="flex flex-wrap items-center justify-center gap-3 py-1"></div>
+                </div>
+                <div id="scores-list"></div>
+            </div>
+        </div>
+
+        <div id="view-teams" class="view hidden">
+            <div class="centered-container"><div id="teams-list"></div></div>
+        </div>
+
+        <div id="view-input" class="view hidden">
+            <div class="max-w-5xl mx-auto">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-4 flex flex-col md:flex-row md:items-end gap-4">
+                    <div class="flex-1">
+                        <label class="block text-[11px] font-black text-gray-400 uppercase mb-2 ml-1">Score Entry</label>
+                        <select id="groupSelect" onchange="loadGroupScorecard()" class="w-full p-4 border-2 border-gray-100 rounded-2xl bg-gray-50 font-black text-gray-700 outline-none focus:border-green-600 appearance-none">
+                            <option value="">-- Loading Groups --</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="clubhouse-card overflow-x-auto relative">
+                    <div id="card-placeholder" class="p-16 text-center text-gray-400 font-medium italic">Select a group to enter scores</div>
+                    <div id="card-loading" class="loading-overlay hidden">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700 mb-2"></div>
+                        <span id="loading-sync-text" class="text-xs font-black uppercase text-gray-500 italic">Syncing Group Card...</span>
+                    </div>
+                    <table id="scorecard-table" class="score-table hidden">
+                        <thead>
+                            <tr id="scorecard-header-row">
+                                <th id="scorecard-header-label" class="sticky-col">Player Name</th>
+                                <script>for(let i=1; i<=9; i++) document.write(`<th class="hole-header">${i}</th>`);</script>
+                                <th class="hole-header total-col">OUT</th>
+                                <script>for(let i=1; i<=18; i++) if(i>9) document.write(`<th class="hole-header">${i}</th>`);</script>
+                                <th class="hole-header total-col">IN</th>
+                                <th class="hole-header total-col">TOT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="player-rows"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-local-rules" class="view hidden">
+            <div class="centered-container px-1">
+                <div class="giant-header mt-1">Local Rules</div>
+                <div id="local-rules-container" class="mt-2">
+                    <div class="p-10 text-center opacity-50 italic">loading local rules...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-rules" class="view hidden">
+            <div class="centered-container px-1">
+                <div class="giant-header mt-1">Spectator Rules</div>
+                <div class="mt-2">
+                    <div class="rule-card"><strong>Stay at least 30 feet away</strong> from players at all times.</div>
+                    <div class="rule-card"><strong>DO NOT</strong> give players advice.</div>
+                    <div class="rule-card"><strong>No Private Conversations:</strong> Avoid private discussions with your player as these will be viewed as giving advice during the round.</div>
+                    <div class="rule-card">Make sure cell phones are on <strong>silent</strong>.</div>
+                    <div class="rule-card"><strong>YOU ARE NOT A RULES OFFICIAL.</strong> The coaches are the rules officials.</div>
+                    <div class="rule-card"><strong>Don’t linger.</strong> There are other groups playing. If you stand around in the fairway or in front of the putting green this will hold up play.</div>
+                    <div class="rule-card">Please be <strong>courteous</strong> to all players and coaches.</div>
+                    <div class="rule-card"><strong>Respect</strong> the golf course.</div>
+                    <div class="rule-card bg-red-50 !border-red-500">
+                        <span class="text-red-700 font-bold">WARNING POLICY:</span> If spectators are not following the rules, they will be given one warning. After that the Region 5 coaches have the right to ask spectators that are not following rules to leave.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-pace" class="view hidden">
+            <div class="centered-container px-1">
+                <div class="giant-header mt-1">Pace of Play</div>
+                <div class="mt-2">
+                    <div class="rule-card">The easiest way to stay on pace is to <strong>walk quickly between shots and holes</strong>. Visit as you walk.</div>
+                    <div class="rule-card"><strong>Play ready golf.</strong> Be ready to hit when it is your turn and remember you don't have to wait to be the furthest from the hole as long as you aren't disrupting another players' shot.</div>
+                    <div class="rule-card">You have <strong>3 minutes</strong> to search for lost or OB balls.</div>
+                    <div class="rule-card">If you aren't sure if you will find your ball, <strong>play a provisional</strong> and tell your playing partners that is what you are doing.</div>
+                    <div class="rule-card bg-blue-50 !border-blue-400">
+                        <span class="text-blue-800 font-bold">PRO TIP:</span> If you aren't waiting on the group in front of you at the tee box then you are likely behind pace.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const DEPLOY_URL = "https://script.google.com/macros/s/AKfycbzH_aCQ7A7kRh6DKsjG3lXrSSxXsJcw8BkNvQiNNsl4DTYlamLbuJ41-TnT54-BxZuGLQ/exec";
+        let currentTheme = localStorage.getItem('golf_theme') || "REGION";
+        let warningShownThisSession = false;
+        let cachedAllScores = [];
+        let groupMap = {}; 
+
+        const SCHOOLS = [
+            { id: "BOX ELDER", name: "BOX ELDER", url: "https://cmsv2-assets.apptegy.net/uploads/7672/logo/9154/bee_new.png", color: "#6b21a8" }, 
+            { id: "BONNEVILLE", name: "BONNEVILLE", url: "https://core-docs.s3.amazonaws.com/weber_school_district__ut_ar/article/image/large_b2cffc0f-68ec-428c-a650-81767d56453b.png", color: "#1e3a8a" }, 
+            { id: "WEST FIELD", name: "WEST FIELD", url: "https://assets.hometownticketing.com/clients/westfield/logos/school_logo_ebc133bd.png", color: "#c2410c" }, 
+            { id: "FREMONT", name: "FREMONT", url: "https://assets.hometownticketing.com/clients/fremontathletics/logos/school_logo_c1182661.png", color: "#2563eb" }, 
+            { id: "NORTHRIDGE", name: "NORTHRIDGE", url: "https://sportshub2-uploads.vnn-prod.zone/files/sites/429/2020/09/29204806/KnightVectorGraphic.png", color: "#991b1b" }, 
+            { id: "CLEARFIELD", name: "CLEARFIELD", url: "https://sportshub2-uploads.vnn-prod.zone/files/sites/1722/2017/07/26012144/12552.png", color: "#15803d" }, 
+            { id: "ROY", name: "ROY", url: "https://cmsv2-assets.apptegy.net/uploads/25031/file/5081095/46ab505e-f612-4145-9e63-ec68e8782242.jpeg", color: "#eab308" },
+            { id: "LAYTON", name: "LAYTON", url: "https://cmsv2-assets.apptegy.net/uploads/22261/logo/25074/Layton_logo.png", color: "#1e3a8a" },
+            { id: "SKYRIDGE", name: "SKYRIDGE", url: "https://cmsv2-assets.apptegy.net/uploads/28514/logo/31327/skyridge_hs_logo.png", color: "#c2410c" },
+            { id: "VIEWMONT", name: "VIEWMONT", url: "https://cmsv2-assets.apptegy.net/uploads/22264/logo/25077/Mascot_V_Full_Color.png", color: "#991b1b" },
+            { id: "RIDGELINE", name: "RIDGELINE", url: "https://resources.finalsite.net/images/f_auto,q_auto/v1729700961/ccsdutorg/hsmffx3qtythe2dme0ir/schoolfooter_1.png", color: "#0284c7" },
+            { id: "WEBER", name: "WEBER", url: "https://cmsv2-assets.apptegy.net/uploads/25033/logo/27846/WeberHS_Logo.png", color: "#dc2626" } 
+        ];
+
+        // Pull to Refresh Logic
+        let touchStart = 0;
+        let touchMove = 0;
+        let isPTR = false;
+        const PTR_THRESHOLD = 120;
+
+        window.addEventListener('touchstart', (e) => {
+            if (window.scrollY === 0) {
+                touchStart = e.touches[0].pageY;
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (window.scrollY === 0 && e.touches[0].pageY > touchStart) {
+                touchMove = e.touches[0].pageY;
+                let diff = touchMove - touchStart;
+                if (diff > 20) {
+                    isPTR = true;
+                    let scroll = Math.min(diff / 2.5, PTR_THRESHOLD);
+                    document.getElementById('ptr-indicator').style.transform = `translateY(${scroll}px)`;
+                    document.getElementById('ptr-arrow').style.transform = `rotate(${Math.min(diff, 180)}deg)`;
+                    if (diff > PTR_THRESHOLD) {
+                        document.getElementById('ptr-icon').style.color = '#ef4444';
+                    } else {
+                        document.getElementById('ptr-icon').style.color = 'var(--primary-color)';
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('touchend', async () => {
+            if (isPTR) {
+                let diff = touchMove - touchStart;
+                if (diff > PTR_THRESHOLD) {
+                    // Trigger Refresh
+                    document.getElementById('ptr-arrow').classList.add('hidden');
+                    document.getElementById('ptr-spinner-svg').classList.remove('hidden');
+                    document.getElementById('ptr-icon').classList.add('ptr-spinning');
+                    
+                    await refreshData();
+                    
+                    setTimeout(() => {
+                        resetPTR();
+                    }, 500);
+                } else {
+                    resetPTR();
+                }
+            }
+            isPTR = false;
+            touchStart = 0;
+            touchMove = 0;
+        });
+
+        function resetPTR() {
+            document.getElementById('ptr-indicator').style.transform = `translateY(0px)`;
+            setTimeout(() => {
+                document.getElementById('ptr-arrow').classList.remove('hidden');
+                document.getElementById('ptr-spinner-svg').classList.add('hidden');
+                document.getElementById('ptr-icon').classList.remove('ptr-spinning');
+                document.getElementById('ptr-arrow').style.transform = `rotate(0deg)`;
+            }, 300);
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                const currentView = localStorage.getItem('last_view');
+                if (currentView === 'input') {
+                    const savedGroup = localStorage.getItem('last_group');
+                    if (savedGroup) loadGroupScorecard(savedGroup);
+                }
+                refreshData();
+            }
+        });
+
+        const header = document.getElementById('main-header');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 20) header.classList.add('header-collapsed');
+            else header.classList.remove('header-collapsed');
+        });
+
+        function setTheme(schoolId) {
+            currentTheme = schoolId;
+            localStorage.setItem('golf_theme', schoolId);
+            const match = SCHOOLS.find(s => s.id === schoolId);
+            document.documentElement.style.setProperty('--primary-color', match ? match.color : '#15803d');
+        }
+
+        const imgError = "this.onerror=null;this.src='https://upload.wikimedia.org/wikipedia/commons/e/e4/Ellipsis_icon.png';";
+
+        function getLogoHtml(text, size = '22px') {
+            if (!text) return "";
+            const t = text.toUpperCase();
+            const match = SCHOOLS.find(s => t.includes(s.name));
+            return match ? `<img src="${match.url}" style="width:${size}; height:${size};" class="inline-logo" alt="${match.name}" onerror="${imgError}">` : "";
+        }
+
+        function closeWarning() {
+            document.getElementById('warning-modal').classList.add('hidden');
+            warningShownThisSession = true;
+        }
+
+        function closeScorecardModal(e) {
+            if(e.target.id === 'scorecard-modal') document.getElementById('scorecard-modal').classList.add('hidden');
+        }
+
+        async function openTeamView(targetName) {
+            const modal = document.getElementById('scorecard-modal');
+            const title = document.getElementById('modal-title');
+            const content = document.getElementById('modal-content');
+            const searchStr = targetName.replace(" TEAM", "").trim().toUpperCase();
+            
+            title.innerText = searchStr;
+            modal.classList.remove('hidden');
+
+            if (cachedAllScores.length === 0) {
+                content.innerHTML = `<p class="p-10 text-center uppercase font-bold opacity-50">Syncing...</p>`;
+                await fetchPlayerScores(); 
+            }
+
+            const roster = cachedAllScores.filter(p => {
+                const pName = String(p[2] || "").toUpperCase();
+                return pName.includes(searchStr) && !pName.includes("TEAM") && !pName.includes("PLAYER NAME") && !pName.includes("PAR");
+            });
+
+            if (roster.length === 0) {
+                content.innerHTML = `<div class="p-16 text-center text-stone-400 font-bold uppercase">No Player Data</div>`;
+                return;
+            }
+
+            content.innerHTML = roster.map(p => {
+                const name = p[2];
+                const match = SCHOOLS.find(s => String(name).toUpperCase().includes(s.name));
+                const thruVal = String(p[24] || "0").trim();
+                const isFinished = thruVal === '18' || thruVal.toUpperCase() === 'F';
+                
+                let frontHoles = '';
+                for(let h=1; h<=9; h++) frontHoles += `<th>${h}</th>`;
+                let frontScores = '';
+                for(let h=1; h<=9; h++) frontScores += `<td>${p[h+2] || '-'}</td>`;
+
+                let backHoles = '';
+                for(let h=10; h<=18; h++) backHoles += `<th>${h}</th>`;
+                let backScores = '';
+                for(let h=10; h<=18; h++) backScores += `<td>${p[h+3] || '-'}</td>`;
+
+                const totalOut = p[12] || '-';
+                const totalIn = p[22] || '-';
+                const totalFin = p[23] || '-';
+
+                return `<div class="roster-card" style="border-top: 6px solid ${match ? match.color : '#333'}">
+                    <div class="roster-player-header">
+                        <span class="flex items-center text-lg font-black">${getLogoHtml(name, '28px')} ${name}</span>
+                        <div class="text-right">
+                            <div class="text-3xl font-black text-green-700 leading-none" style="font-variant-numeric: tabular-nums;">${ isFinished ? p[23] : (p[25] || '-') }</div>
+                            <div class="text-[10px] opacity-60 font-black uppercase tracking-tighter">Thru ${thruVal}</div>
+                        </div>
+                    </div>
+                    <div class="p-3 space-y-3">
+                        <table class="modal-score-table"><tr>${frontHoles}<th class="total-label">OUT</th></tr><tr>${frontScores}<td class="total-val">${totalOut}</td></tr></table>
+                        <table class="modal-score-table"><tr>${backHoles}<th class="total-label">IN</th><th class="total-label">TOT</th></tr><tr>${backScores}<td class="total-val">${totalIn}</td><td class="total-val !bg-green-700">${totalFin}</td></tr></table>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function openScorecard(playerName) { openTeamView(playerName); }
+
+        async function buildGlobalGroupMap(data) {
+            groupMap = {};
+            for (let i = 0; i < 33; i++) {
+                const playerStartRow = i * 5;
+                for (let r = 0; r < 4; r++) {
+                    const rowData = data[playerStartRow + r];
+                    if (rowData && rowData[2]) {
+                        const pName = String(rowData[2]).trim().toUpperCase();
+                        if (pName !== "" && pName !== "PLAYER NAME") groupMap[pName] = `Group ${i + 1}`;
+                    }
+                }
+            }
+        }
+
+        async function initGroupDropdown() {
+            const select = document.getElementById('groupSelect');
+            try {
+                const res = await fetch(`${DEPLOY_URL}?action=getAllScores`);
+                const rawData = await res.json();
+                await buildGlobalGroupMap(rawData);
+                let optionsHtml = '<option value="">-- Select Group --</option>';
+                for(let i=0; i<33; i++) {
+                    const groupNum = i + 1;
+                    const groupHeaderIdx = 4 + (i * 5); 
+                    const headerRow = rawData[groupHeaderIdx];
+                    const startTime = (headerRow && headerRow[0]) ? headerRow[0] : "?";
+                const labelText = String(startTime).includes(':') ? `Start Time: ${startTime}` : `Starting Hole: ${startTime}`;
+                optionsHtml += `<option value="Group ${groupNum}">Group ${groupNum} - ${labelText}</option>`;
+            }
+                select.innerHTML = optionsHtml;
+                const lastGroup = localStorage.getItem('last_group');
+                if (lastGroup) {
+                    select.value = lastGroup;
+                    loadGroupScorecard(lastGroup);
+                }
+            } catch (e) { select.innerHTML = '<option value="">-- Error --</option>'; }
+        }
+
+        // --- NEW: Robust Pace Helper ---
+        function addMinutesToStartTime(timeStr, mins) {
+            if (!timeStr || !timeStr.includes(':')) return "";
+            try {
+                const parts = timeStr.trim().split(' ');
+                const time = parts[0];
+                const modifier = parts[1] || 'AM'; // Default to AM if missing
+                let [hours, minutes] = time.split(':').map(Number);
+                if (modifier.toUpperCase() === 'PM' && hours < 12) hours += 12;
+                if (modifier.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                const date = new Date();
+                date.setHours(hours, minutes + mins, 0);
+                return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            } catch (e) { return ""; }
+        }
+
+        async function loadGroupScorecard(forcedGroupValue = null) {
+            const groupSelect = document.getElementById('groupSelect');
+            const groupVal = forcedGroupValue || groupSelect.value;
+            if (forcedGroupValue) groupSelect.value = forcedGroupValue;
+            localStorage.setItem('last_group', groupVal);
+
+            const table = document.getElementById('scorecard-table');
+            const placeholder = document.getElementById('card-placeholder');
+            const loading = document.getElementById('card-loading');
+            const tbody = document.getElementById('player-rows');
+            
+            if (!groupVal) {
+                table.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                loading.classList.add('hidden');
+                return;
+            }
+
+            loading.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+            table.classList.add('opacity-40'); 
+
+            const groupNumMatch = groupVal.match(/Group (\d+)/);
+            const groupIdx = parseInt(groupNumMatch[1]) - 1;
+            const groupTab = `G${groupIdx + 1}`;
+
+            try {
+                const [namesRes, scoresRes] = await Promise.all([
+                    fetch(`${DEPLOY_URL}?action=getGroupPlayers&groupTab=${encodeURIComponent(groupTab)}`),
+                    fetch(`${DEPLOY_URL}?action=getAllScores`)
+                ]);
+                
+                const groupNames = await namesRes.json();
+                const allScoresRaw = await scoresRes.json();
+
+                // Get start time from specific cell in spreadsheet data
+                const headerIdx = 4 + (groupIdx * 5);
+                const startTimeStr = allScoresRaw[headerIdx] ? String(allScoresRaw[headerIdx][0]) : "";
+
+                // Remove existing pace rows before re-drawing
+                table.querySelectorAll('.pace-row').forEach(row => row.remove());
+
+                tbody.innerHTML = groupNames.map(name => {
+                    const pRow = allScoresRaw.find(r => String(r[2] || "").trim().toUpperCase() === name.trim().toUpperCase()) || [];
+                    const idBase = name.replace(/\s/g, '');
+                    const match = SCHOOLS.find(s => name.toUpperCase().includes(s.name));
+                    const stickyStyle = match ? `style="background-color: ${match.color}; color: white;"` : "";
+                    let rowHtml = `<tr><td class="sticky-col" ${stickyStyle}>${getLogoHtml(name)} ${name}</td>`;
+                    for(let h=1; h<=9; h++) {
+                        const score = pRow[h+2] || "";
+                        rowHtml += `<td><input type="number" class="score-input ${score ? 'synced-success' : ''}" value="${score}" data-player="${name}" data-hole="${h}" onblur="autoSaveScore(this)"></td>`;
+                    }
+                    rowHtml += `<td id="out-${idBase}" class="total-col">-</td>`;
+                    for(let h=10; h<=18; h++) {
+                        const score = pRow[h+3] || "";
+                        rowHtml += `<td><input type="number" class="score-input ${score ? 'synced-success' : ''}" value="${score}" data-player="${name}" data-hole="${h}" onblur="autoSaveScore(this)"></td>`;
+                    }
+                    rowHtml += `<td id="in-${idBase}" class="total-col">-</td>`;
+                    rowHtml += `<td id="tot-${idBase}" class="total-col">-</td>`;
+                    rowHtml += `</tr>`;
+                    return rowHtml;
+                }).join('');
+
+                // --- PACE ROW LOGIC ---
+                if (startTimeStr && startTimeStr !== "?") {
+                    const paceOffsets = {
+                        1: 15,  2: 33,  3: 48,  4:62,  5: 72,  6: 86,  7: 101, 8: 112, 9: 126,
+                        10: 149, 11: 160, 12: 175, 13: 194, 14: 208, 15: 223, 16: 238, 17: 253, 18: 270
+                    };
+
+                    let paceHtml = `<tr class="pace-row bg-blue-50/70 border-t-2 border-blue-200">
+                        <td class="sticky-col !bg-blue-100 text-[9px] text-blue-700 font-black">PACE (EST. FINISH)</td>`;
+                    for (let h = 1; h <= 9; h++) {
+                        paceHtml += `<td class="text-[9px] font-bold text-blue-600">${addMinutesToStartTime(startTimeStr, paceOffsets[h])}</td>`;
+                    }
+                    paceHtml += `<td class="bg-blue-100/50"></td>`;
+                    for (let h = 10; h <= 18; h++) {
+                        paceHtml += `<td class="text-[9px] font-bold text-blue-600">${addMinutesToStartTime(startTimeStr, paceOffsets[h])}</td>`;
+                    }
+                    paceHtml += `<td class="bg-blue-100/50"></td><td class="bg-blue-100/50"></td></tr>`;
+                    
+                    // Add it as the first row of the body for high visibility
+                    tbody.insertAdjacentHTML('afterbegin', paceHtml);
+                }
+
+                loading.classList.add('hidden');
+                table.classList.remove('hidden', 'opacity-40');
+                groupNames.forEach(name => calculateTotals(name));
+
+            } catch (e) { 
+                loading.classList.add('hidden');
+                placeholder.innerHTML = `<div class="text-red-500 font-bold p-16">Sync Error</div>`; 
+                placeholder.classList.remove('hidden');
+            }
+        }
+
+        async function autoSaveScore(input) {
+            const player = input.getAttribute('data-player');
+            const holeNum = input.getAttribute('data-hole');
+            const score = input.value;
+            const groupVal = localStorage.getItem('last_group');
+            if (!groupVal) return;
+            const groupNumMatch = groupVal.match(/Group (\d+)/);
+            const groupTab = groupNumMatch ? `G${groupNumMatch[1]}` : "G1";
+            input.classList.add('syncing');
+            calculateTotals(player);
+            try {
+                const payload = { groupTab, holeNum, scores: { [player]: score || "" } };
+                await fetch(DEPLOY_URL, { method: 'POST', body: JSON.stringify(payload), mode: 'no-cors' });
+                input.classList.remove('syncing');
+                if(score) input.classList.add('synced-success');
+            } catch (e) { input.classList.remove('syncing'); }
+        }
+
+        function calculateTotals(name) {
+            const idBase = name.replace(/\s/g, '');
+            let out = 0, inT = 0, outC = 0, inC = 0;
+            document.querySelectorAll(`input[data-player="${name}"]`).forEach(input => {
+                const h = parseInt(input.getAttribute('data-hole'));
+                const val = parseInt(input.value) || 0;
+                if(val > 0) {
+                    if(h <= 9) { out += val; outC++; }
+                    else { inT += val; inC++; }
+                }
+            });
+            const outEl = document.getElementById(`out-${idBase}`);
+            const inEl = document.getElementById(`in-${idBase}`);
+            const Math_totEl = document.getElementById(`tot-${idBase}`);
+            if(outEl) outEl.innerText = outC > 0 ? out : '-';
+            if(inEl) inEl.innerText = inC > 0 ? inT : '-';
+            if(Math_totEl) Math_totEl.innerText = (outC+inC) > 0 ? (out+inT) : '-';
+        }
+
+        async function fetchLocalRules() {
+            const container = document.getElementById('local-rules-container');
+            container.innerHTML = `<div class="p-10 text-center opacity-50 italic">loading local rules...</div>`;
+            try {
+                const res = await fetch(`${DEPLOY_URL}?action=getLocalRules`);
+                const rules = await res.json();
+                if (rules && rules.length > 0) {
+                    container.innerHTML = rules.map(rule => `<div class="rule-card row-animate">${rule}</div>`).join('');
+                } else {
+                    container.innerHTML = `<div class="p-10 text-center opacity-50 italic">No local rules listed in spreadsheet.</div>`;
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="p-10 text-center text-red-500 font-bold">Error syncing rules.</div>`;
+            }
+        }
+
+        function setView(view) {
+            localStorage.setItem('last_view', view);
+            if (view === 'input' && !warningShownThisSession) {
+                document.getElementById('warning-modal').classList.remove('hidden');
+            }
+            document.querySelectorAll('.view').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${view}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-pill').forEach(el => el.classList.remove('active-tab'));
+            const activeBtn = document.getElementById(`tab-${view}`);
+            if (activeBtn) activeBtn.classList.add('active-tab');
+            if (['teams', 'scores'].includes(view)) refreshData();
+            if (view === 'input') initGroupDropdown();
+            if (view === 'local-rules') fetchLocalRules();
+        }
+
+        function getScoreClass(toPar) {
+            if (toPar === 0) return 'score-even';     
+            return toPar < 0 ? 'score-under' : 'score-over'; 
+        }
+
+        function formatToPar(val) {
+            if (val === 0) return "E";
+            return val > 0 ? `+${val}` : `${val}`;
+        }
+
+        async function fetchLeaderboard(type = 'team') {
+            const list = document.getElementById('teams-list');
+            try {
+                if (cachedAllScores.length === 0) await fetchPlayerScores();
+                let teamResults = SCHOOLS.map(school => {
+                    const roster = cachedAllScores.filter(player => {
+                        const pName = String(player[2] || "").toUpperCase();
+                        return pName.includes(school.name) && !pName.includes("TEAM") && pName !== "PLAYER NAME";
+                    });
+                    const playerData = roster.map(p => ({ toPar: parseInt(p[25]), total: parseInt(p[23]), thru: String(p[24] || "0").trim().toUpperCase() })).filter(d => !isNaN(d.toPar) && !isNaN(d.total));
+                    playerData.sort((a, b) => a.toPar - b.toPar);
+                    const top4 = playerData.slice(0, 4);
+                    const allFinished = roster.length > 0 && roster.every(p => {
+                        const t = String(p[24] || "0").trim().toUpperCase();
+                        return t === '18' || t === 'F';
+                    });
+                    let teamToPar = top4.length >= 4 ? top4.reduce((sum, d) => sum + d.toPar, 0) : null;
+                    let teamTotalAbs = top4.length >= 4 ? top4.reduce((sum, d) => sum + d.total, 0) : null;
+                    const maxThru = roster.reduce((max, p) => {
+                        const t = parseInt(p[24]) || 0;
+                        return t > max ? t : max;
+                    }, 0);
+                    return { name: school.name + " TEAM", school, toPar: teamToPar, total: teamTotalAbs, thru: allFinished ? 'F' : maxThru, playerCount: roster.length, allFinished };
+                });
+                teamResults.sort((a, b) => {
+                    if (a.playerCount < 4 && b.playerCount < 4) return 0;
+                    if (a.playerCount < 4) return 1;
+                    if (b.playerCount < 4) return -1;
+                    return (a.toPar ?? 999) - (b.toPar ?? 999);
+                });
+                let currentRank = 1;
+                list.innerHTML = `<div class="giant-header mt-1">Team Leaders</div>` + 
+                    teamResults.map((team, i) => {
+                        let rank = '-';
+                        if (team.playerCount >= 4) {
+                            if (!(i > 0 && team.toPar === teamResults[i-1].toPar)) currentRank = i + 1;
+                            rank = currentRank;
+                        }
+                        const isFinished = team.allFinished;
+                        const displayScore = team.playerCount < 4 ? '-' : (isFinished ? team.total : formatToPar(team.toPar));
+                        const scoreClass = team.playerCount < 4 ? '' : getScoreClass(team.toPar);
+                        const nameEscaped = team.name.replace(/'/g, "\\'");
+                        return `<div class="lb-grid row-animate" style="border-left: 6px solid ${team.school.color}; animation-delay: ${i * 0.05}s">
+                            <div class="rank-cell">#${rank}</div>
+                            <div class="name-cell">${getLogoHtml(team.name)} <span class="name-text" onclick="openScorecard('${nameEscaped}')">${team.name}</span></div>
+                            <div class="flex items-center"><div class="score-pill ${scoreClass}">${displayScore}</div></div>
+                            <div class="holes-cell">${team.thru || '-'}</div>
+                        </div>`;
+                    }).join('');
+            } catch (e) { list.innerHTML = `<div class="p-10 text-center">Error Loading</div>`; }
+        }
+
+        async function fetchPlayerScores() {
+            try {
+                const res = await fetch(`${DEPLOY_URL}?action=getAllScores`);
+                cachedAllScores = await res.json();
+                await buildGlobalGroupMap(cachedAllScores);
+                renderPlayerScores();
+                renderFilterButtons();
+            } catch (e) { console.error("Score fetch failed", e); }
+        }
+
+        function renderFilterButtons() {
+            const btnContainer = document.getElementById('team-filter-buttons');
+            if (!btnContainer) return;
+            let html = `<button onclick="filterPlayerScores('')" class="bg-white text-stone-700 text-[10px] font-black px-4 py-3 rounded-2xl shadow-sm border border-gray-100 hover:bg-stone-50 transition-colors uppercase">ALL</button>`;
+            html += SCHOOLS.map(s => `<button onclick="filterPlayerScores('${s.name}')" class="bg-white p-1 rounded-2xl border border-gray-100 hover:border-gray-300 transition-all shadow-sm"><img src="${s.url}" alt="${s.name}" class="w-9 h-9 object-contain"></button>`).join('');
+            btnContainer.innerHTML = html;
+        }
+
+        function renderPlayerScores() {
+            const list = document.getElementById('scores-list');
+            if (!cachedAllScores || cachedAllScores.length === 0) return;
+            let allPlayers = cachedAllScores.filter(p => {
+                const name = String(p[2] || "").toUpperCase();
+                return name && name !== "PLAYER NAME" && name !== "PAR" && SCHOOLS.some(s => name.includes(s.name));
+            }).map(p => ({ row: p, name: p[2], toPar: parseInt(p[25]) || 0, total: p[23], thru: String(p[24] || "-").trim().toUpperCase() }));
+            let activePlayers = allPlayers.filter(p => (parseInt(p.thru) || 0) > 0 || p.thru === 'F');
+            let inactivePlayers = allPlayers.filter(p => !((parseInt(p.thru) || 0) > 0 || p.thru === 'F'));
+            activePlayers.sort((a, b) => a.toPar - b.toPar);
+            inactivePlayers.sort((a, b) => a.toPar - b.toPar);
+            const rankMap = new Map();
+            let currentRank = 1;
+            for(let i=0; i<activePlayers.length; i++) {
+                if(i > 0 && activePlayers[i].toPar > activePlayers[i-1].toPar) currentRank = i + 1;
+                const isTied = (i > 0 && activePlayers[i].toPar === activePlayers[i - 1].toPar) || (i < activePlayers.length - 1 && activePlayers[i].toPar === activePlayers[i + 1].toPar);
+                rankMap.set(activePlayers[i].name, isTied ? `T${currentRank}` : currentRank);
+            }
+            inactivePlayers.forEach(p => rankMap.set(p.name, '-'));
+            const combinedList = [...activePlayers, ...inactivePlayers];
+            list.innerHTML = `<div class="text-[10px] font-black uppercase text-gray-400 mb-3 px-2 grid grid-cols-[1fr_75px_50px]"><span>Player</span><span class="text-center">Score</span><span class="text-right">Thru</span></div>` + 
+                combinedList.map((p, i) => {
+                const match = SCHOOLS.find(s => p.name.toUpperCase().includes(s.name));
+                const nameEscaped = p.name.replace(/'/g, "\\'");
+                const rank = rankMap.get(p.name);
+                const isFinished = p.thru === '18' || p.thru === 'F';
+                const displayScore = isFinished ? p.total : formatToPar(p.toPar);
+                const scoreClass = getScoreClass(p.toPar);
+                const isInactive = rank === '-';
+                return `<div class="all-scores-item row-animate ${isInactive ? 'opacity-60' : ''}" style="border-left: 6px solid ${match ? match.color : '#eee'}; animation-delay: ${i*0.02}s"><span class="font-bold uppercase flex items-center overflow-hidden cursor-pointer" onclick="openScorecard('${nameEscaped}')"><span class="text-[11px] font-black text-gray-500 w-8 shrink-0">${isInactive ? '-' : '#' + rank}</span>${getLogoHtml(p.name, '24px')} <span class="truncate text-[0.9rem] hover:underline">${p.name}</span></span><span class="flex items-center"><div class="score-pill ${p.thru === '-' || p.thru === '0' ? '' : scoreClass}">${p.thru === '-' || p.thru === '0' ? '-' : displayScore}</div></span><span class="text-right text-[12px] font-black text-gray-600 uppercase tabular-nums">${p.thru}</span></div>`;
+            }).join('');
+        }
+
+        function filterPlayerScores(q) {
+            const items = document.querySelectorAll('#scores-list .all-scores-item');
+            const searchInput = document.getElementById('scores-search');
+            if (q !== undefined && searchInput.value !== q) searchInput.value = q;
+            const term = (q || '').toLowerCase();
+            items.forEach(i => i.style.display = i.innerText.toLowerCase().includes(term) ? '' : 'none');
+        }
+
+        function refreshData() {
+            const active = document.querySelector('nav .nav-pill.active-tab')?.id;
+            if (active === 'tab-teams') return fetchLeaderboard('team');
+            if (active === 'tab-scores') return fetchPlayerScores();
+            if (active === 'tab-local-rules') return fetchLocalRules();
+            return Promise.resolve();
+        }
+
+        window.onload = () => { 
+            const banner = document.getElementById('school-logo-banner');
+            banner.innerHTML = SCHOOLS.map(s => `<img src="${s.url}" onclick="setTheme('${s.id}')" class="school-logo-btn shadow-sm" onerror="${imgError}">`).join('');
+            setTheme(currentTheme);
+            const lastView = localStorage.getItem('last_view') || 'scores';
+            setView(lastView);
+            fetchPlayerScores(); 
+            initGroupDropdown(); 
+        };
+    </script>
+</body>
+</html>
