@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title> Savage Golf</title>
+    <title> Northern Utah Invitational </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
@@ -401,7 +401,7 @@
                     <div id="modal-logo-container" class="bg-white p-1 rounded"></div>
                     <div>
                         <h3 id="modal-title" class="text-lg font-black uppercase italic leading-none">View</h3>
-                        <p id="modal-subtitle" class="text-[10px] font-bold uppercase tracking-widest opacity-70 mt-1">Savage Golf Hub</p>
+                        <p id="modal-subtitle" class="text-[10px] font-bold uppercase tracking-widest opacity-70 mt-1">Northern Utah Invitational Hub</p>
                     </div>
                 </div>
                 <button onclick="document.getElementById('scorecard-modal').classList.add('hidden')" class="p-2 hover:bg-white/10 rounded-full">
@@ -432,7 +432,7 @@
                 </div>
                 <div class="flex flex-col items-center text-center w-full">
                     <div class="flex items-center justify-center space-x-2">
-                        <h1 class="text-xl sm:text-3xl font-black tracking-tighter uppercase italic">Savage Golf</h1>
+                        <h1 class="text-xl sm:text-3xl font-black tracking-tighter uppercase italic">Northern Utah Invitational</h1>
                     </div>
                     <span class="text-[9px] sm:text-xs font-bold tracking-[0.3em] text-white/70 uppercase">Live Scoring Hub</span>
                     <div id="school-logo-banner" class="school-banner"></div>
@@ -826,10 +826,10 @@
                 // Get start time from specific cell in spreadsheet data
                 const headerIdx = 4 + (groupIdx * 5);
                 const startTimeStr = allScoresRaw[headerIdx] ? String(allScoresRaw[headerIdx][0]) : "";
-
+                
                 // Extracts the starting hole number from text (e.g., "10" or "Hole 10"), defaulting to 1
                 const startingHole = parseInt(startTimeStr.replace(/\D/g, '')) || 1;
-
+                
                 // Remove existing pace rows before re-drawing
                 table.querySelectorAll('.pace-row').forEach(row => row.remove());
 
@@ -858,25 +858,46 @@
 
                 // --- PACE ROW LOGIC ---
                 if (startTimeStr && startTimeStr !== "?") {
-                    const paceOffsets = {
-                        1: 15,  2: 33,  3: 48,  4:62,  5: 72,  6: 86,  7: 101, 8: 112, 9: 126,
-                        10: 149, 11: 160, 12: 175, 13: 194, 14: 208, 15: 223, 16: 238, 17: 253, 18: 270
-                    };
+      // 1. Determine base start time (8:08 AM for 'B' groups, 8:00 AM for standard, or use specific time string if present)
+      let baseStartTime = "8:00 AM";
+      if (startTimeStr.toUpperCase().includes("B")) {
+          baseStartTime = "8:08 AM";
+      } else if (startTimeStr.includes(":")) {
+          baseStartTime = startTimeStr;
+      }
 
-                    let paceHtml = `<tr class="pace-row bg-blue-50/70 border-t-2 border-blue-200">
-                        <td class="sticky-col !bg-blue-100 text-[9px] text-blue-700 font-black">PACE (EST. FINISH)</td>`;
-                    for (let h = 1; h <= 9; h++) {
-                        paceHtml += `<td class="text-[9px] font-bold text-blue-600">${addMinutesToStartTime(startTimeStr, paceOffsets[h])}</td>`;
-                    }
-                    paceHtml += `<td class="bg-blue-100/50"></td>`;
-                    for (let h = 10; h <= 18; h++) {
-                        paceHtml += `<td class="text-[9px] font-bold text-blue-600">${addMinutesToStartTime(startTimeStr, paceOffsets[h])}</td>`;
-                    }
-                    paceHtml += `<td class="bg-blue-100/50"></td><td class="bg-blue-100/50"></td></tr>`;
-                    
-                    // Add it as the first row of the body for high visibility
-                    tbody.insertAdjacentHTML('afterbegin', paceHtml);
-                }
+      // 2. Individual minutes allocated to complete each hole
+      const holeMinutes = {
+          1: 15, 2: 18, 3: 15, 4: 14, 5: 10, 6: 14, 7: 15, 8: 11, 9: 14,
+          10: 23, 11: 11, 12: 15, 13: 19, 14: 14, 15: 15, 16: 15, 17: 15, 18: 17
+      };
+
+      // 3. Helper to sum minutes in sequence from startingHole up to targetHole
+      const getPaceOffsetForHole = (targetHole) => {
+          let totalMins = 0;
+          let currentHole = startingHole;
+          while (true) {
+              totalMins += (holeMinutes[currentHole] || 15);
+              if (currentHole === targetHole) break;
+              currentHole = (currentHole % 18) + 1; // Wraps from 18 back to 1
+          }
+          return totalMins;
+      };
+
+      // 4. Generate pace row using calculated offsets
+      let paceHtml = `<tr class="pace-row bg-blue-50/70 border-t-2 border-blue-200">
+          <td class="sticky-col !bg-blue-100 text-[9px] text-blue-700 font-black">PACE (EST. FINISH)</td>`;
+      for (let h = 1; h <= 9; h++) {
+          paceHtml += `<td class="text-[9px] font-bold text-blue-600">${addMinutesToStartTime(baseStartTime, getPaceOffsetForHole(h))}</td>`;
+      }
+      paceHtml += `<td class="bg-blue-100/50"></td>`;
+      for (let h = 10; h <= 18; h++) {
+          paceHtml += `<td class="text-[9px] font-bold text-blue-600">${addMinutesToStartTime(baseStartTime, getPaceOffsetForHole(h))}</td>`;
+      }
+      paceHtml += `<td class="bg-blue-100/50"></td><td class="bg-blue-100/50"></td></tr>`;
+      
+      tbody.insertAdjacentHTML('afterbegin', paceHtml);
+  }
 
                 loading.classList.add('hidden');
                 table.classList.remove('hidden', 'opacity-40');
