@@ -858,6 +858,25 @@
 
                 // --- PACE ROW LOGIC ---
                 if (startTimeStr && startTimeStr !== "?") {
+                    const paceOffsets = {
+                        1: 15,  2: 33,  3: 48,  4:62,  5: 72,  6: 86,  7: 101, 8: 112, 9: 126,
+                        10: 149, 11: 160, 12: 175, 13: 194, 14: 208, 15: 223, 16: 238, 17: 253, 18: 270
+                    };
+
+                    let paceHtml = `<tr class="pace-row bg-blue-50/70 border-t-2 border-blue-200">
+                        <td class="sticky-col !bg-blue-100 text-[9px] text-blue-700 font-black">PACE (EST. FINISH)</td>`;
+                    for (let h = 1; h <= 9; h++) {
+                        paceHtml += `<td class="text-[9px] font-bold text-blue-600">${addMinutesToStartTime(startTimeStr, paceOffsets[h])}</td>`;
+                    }
+                    paceHtml += `<td class="bg-blue-100/50"></td>`;
+                    for (let h = 10; h <= 18; h++) {
+                        paceHtml += `<td class="text-[9px] font-bold text-blue-600">${addMinutesToStartTime(startTimeStr, paceOffsets[h])}</td>`;
+                    }
+                    paceHtml += `<td class="bg-blue-100/50"></td><td class="bg-blue-100/50"></td></tr>`;
+                    
+                    // Add it as the first row of the body for high visibility
+                    tbody.insertAdjacentHTML('afterbegin', paceHtml);
+                }
 
                 loading.classList.add('hidden');
                 table.classList.remove('hidden', 'opacity-40');
