@@ -988,58 +988,100 @@
             return val > 0 ? `+${val}` : `${val}`;
         }
 
-        async function fetchLeaderboard(type = 'team') {
-            const list = document.getElementById('teams-list');
-            try {
-                if (cachedAllScores.length === 0) await fetchPlayerScores();
-                let teamResults = SCHOOLS.map(school => {
-                    const roster = cachedAllScores.filter(player => {
-                        const pName = String(player[2] || "").toUpperCase();
-                        return pName.includes(school.name) && !pName.includes("TEAM") && pName !== "PLAYER NAME";
-                    });
-                    const playerData = roster.map(p => ({ toPar: parseInt(p[25]), total: parseInt(p[23]), thru: String(p[24] || "0").trim().toUpperCase() })).filter(d => !isNaN(d.toPar) && !isNaN(d.total));
-                    playerData.sort((a, b) => a.toPar - b.toPar);
-                    const top4 = playerData.slice(0, 4);
-                    const allFinished = roster.length > 0 && roster.every(p => {
-                        const t = String(p[24] || "0").trim().toUpperCase();
-                        return t === '18' || t === 'F';
-                    });
-                    let teamToPar = top4.length >= 4 ? top4.reduce((sum, d) => sum + d.toPar, 0) : null;
-                    let teamTotalAbs = top4.length >= 4 ? top4.reduce((sum, d) => sum + d.total, 0) : null;
-                    const maxThru = roster.reduce((max, p) => {
-                        const t = parseInt(p[24]) || 0;
-                        return t > max ? t : max;
-                    }, 0);
-                    return { name: school.name + " TEAM", school, toPar: teamToPar, total: teamTotalAbs, thru: allFinished ? 'F' : maxThru, playerCount: roster.length, allFinished };
-                });
-                teamResults.sort((a, b) => {
-                    if (a.playerCount < 4 && b.playerCount < 4) return 0;
-                    if (a.playerCount < 4) return 1;
-                    if (b.playerCount < 4) return -1;
-                    return (a.toPar ?? 999) - (b.toPar ?? 999);
-                });
-                let currentRank = 1;
-                list.innerHTML = `<div class="giant-header mt-1">Team Leaders</div>` + 
-                    teamResults.map((team, i) => {
-                        let rank = '-';
-                        if (team.playerCount >= 4) {
-                            if (!(i > 0 && team.toPar === teamResults[i-1].toPar)) currentRank = i + 1;
-                            rank = currentRank;
-                        }
-                        const isFinished = team.allFinished;
-                        const displayScore = team.playerCount < 4 ? '-' : (isFinished ? team.total : formatToPar(team.toPar));
-                        const scoreClass = team.playerCount < 4 ? '' : getScoreClass(team.toPar);
-                        const nameEscaped = team.name.replace(/'/g, "\\'");
-                        return `<div class="lb-grid row-animate" style="border-left: 6px solid ${team.school.color}; animation-delay: ${i * 0.05}s">
-                            <div class="rank-cell">#${rank}</div>
-                            <div class="name-cell">${getLogoHtml(team.name)} <span class="name-text" onclick="openScorecard('${nameEscaped}')">${team.name}</span></div>
-                            <div class="flex items-center"><div class="score-pill ${scoreClass}">${displayScore}</div></div>
-                            <div class="holes-cell">${team.thru || '-'}</div>
-                        </div>`;
-                    }).join('');
-            } catch (e) { list.innerHTML = `<div class="p-10 text-center">Error Loading</div>`; }
-        }
+async function fetchLeaderboard(type = 'team') {
+    const list = document.getElementById('teams-list');
+    try {
+        if (cachedAllScores.length === 0) await fetchPlayerScores();
+        let teamResults = [];
 
+        SCHOOLS.forEach(school => {
+            const schoolRoster = cachedAllScores.filter(player => {
+                const pName = String(player[2] || "").toUpperCase();
+                return pName.includes(school.name) && !pName.includes("TEAM") && pName !== "PLAYER NAME";
+            });
+
+            // Look for numbers directly following the school name (e.g. BOX ELDER 1, BOX ELDER 2)
+            const teamNumbers = new Set();
+            schoolRoster.forEach(p => {
+                const pName = String(p[2] || "").toUpperCase();
+                const match = pName.match(new RegExp(school.name + "\\s*(\\d+)"));
+                if (match) teamNumbers.add(match[1]);
+            });
+
+            // Split into sub-teams if numbers are found; otherwise treat as one team
+            const subTeams = teamNumbers.size > 0 
+                ? Array.from(teamNumbers).map(num => ({ subName: `${school.name} ${num}`, num }))
+                : [{ subName: school.name, num: null }];
+
+            subTeams.forEach(({ subName, num }) => {
+                const roster = schoolRoster.filter(player => {
+                    const pName = String(player[2] || "").toUpperCase();
+                    if (num !== null) {
+                        return pName.match(new RegExp(school.name + "\\s*" + num + "(\\s|$)"));
+                    }
+                    return true;
+                });
+
+                const playerData = roster.map(p => ({
+                    toPar: parseInt(p[25]),
+                    total: parseInt(p[23]),
+                    thru: String(p[24] || "0").trim().toUpperCase()
+                })).filter(d => !isNaN(d.toPar) && !isNaN(d.total));
+
+                playerData.sort((a, b) => a.toPar - b.toPar);
+                const top4 = playerData.slice(0, 4);
+                const allFinished = roster.length > 0 && roster.every(p => {
+                    const t = String(p[24] || "0").trim().toUpperCase();
+                    return t === '18' || t === 'F';
+                });
+
+                let teamToPar = top4.length >= 4 ? top4.reduce((sum, d) => sum + d.toPar, 0) : null;
+                let teamTotalAbs = top4.length >= 4 ? top4.reduce((sum, d) => sum + d.total, 0) : null;
+                const maxThru = roster.reduce((max, p) => {
+                    const t = parseInt(p[24]) || 0;
+                    return t > max ? t : max;
+                }, 0);
+
+                teamResults.push({
+                    name: subName + " TEAM",
+                    school,
+                    toPar: teamToPar,
+                    total: teamTotalAbs,
+                    thru: allFinished ? 'F' : maxThru,
+                    playerCount: roster.length,
+                    allFinished
+                });
+            });
+        });
+
+        teamResults.sort((a, b) => {
+            if (a.playerCount < 4 && b.playerCount < 4) return 0;
+            if (a.playerCount < 4) return 1;
+            if (b.playerCount < 4) return -1;
+            return (a.toPar ?? 999) - (b.toPar ?? 999);
+        });
+
+        let currentRank = 1;
+        list.innerHTML = `<div class="giant-header mt-1">Team Leaders</div>` + 
+            teamResults.map((team, i) => {
+                let rank = '-';
+                if (team.playerCount >= 4) {
+                    if (!(i > 0 && team.toPar === teamResults[i-1].toPar)) currentRank = i + 1;
+                    rank = currentRank;
+                }
+                const isFinished = team.allFinished;
+                const displayScore = team.playerCount < 4 ? '-' : (isFinished ? team.total : formatToPar(team.toPar));
+                const scoreClass = team.playerCount < 4 ? '' : getScoreClass(team.toPar);
+                const nameEscaped = team.name.replace(/'/g, "\\'");
+                return `<div class="lb-grid row-animate" style="border-left: 6px solid ${team.school.color}; animation-delay: ${i * 0.05}s">
+                    <div class="rank-cell">#${rank}</div>
+                    <div class="name-cell">${getLogoHtml(team.name)} <span class="name-text" onclick="openScorecard('${nameEscaped}')">${team.name}</span></div>
+                    <div class="flex items-center"><div class="score-pill ${scoreClass}">${displayScore}</div></div>
+                    <div class="holes-cell">${team.thru || '-'}</div>
+                </div>`;
+            }).join('');
+    } catch (e) { list.innerHTML = `<div class="p-10 text-center">Error Loading</div>`; }
+}
         async function fetchPlayerScores() {
             try {
                 const res = await fetch(`${DEPLOY_URL}?action=getAllScores`);
